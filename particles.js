@@ -6,14 +6,10 @@ function getRandomInt(max) {
 
 export class Particle {
     constructor(maxX, maxY, maxZ) {
-        this.x = getRandomInt(maxX);
-        this.y = getRandomInt(maxY);
-        this.z = getRandomInt(maxZ);
+        this.position = new THREE.Vector3(getRandomInt(maxX), getRandomInt(maxY), getRandomInt(maxZ));        
         this.size = 10;
-        this.velocity = new THREE.Vector3(0, 0, 0);
+        this.velocity = new THREE.Vector3(1, 1, 1);
         this.acc = new THREE.Vector3(0, 0, 0);
-
-        console.log(this.x, this.y, this.z, maxX)
     }
 
     applyForce(force) {
@@ -21,7 +17,7 @@ export class Particle {
     }
 
     createParticle() {
-        const position = new Float32Array([this.x, this.y, this.z])
+        const position = new Float32Array([this.position.x, this.position.y, this.position.z])
         const particleGeometry = new THREE.BufferGeometry();
         particleGeometry.setAttribute('position', new THREE.BufferAttribute(position, 3));
         const particleMaterial = new THREE.PointsMaterial({
@@ -32,6 +28,4 @@ export class Particle {
         const particle = new THREE.Points(particleGeometry, particleMaterial);
         return particle
     }
-
-    
 }

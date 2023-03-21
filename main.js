@@ -20,11 +20,13 @@ const canvas = document.getElementById("3d-flow-field");
 const params = {
     width: window.innerWidth,
     height: window.innerHeight,
-    flowFieldX: 50,
-    flowFieldY: 50,
-    flowFieldZ: 50,
+    flowFieldX: 100,
+    flowFieldY: 100,
+    flowFieldZ: 100,
     boxSegments: 1,
     gridwidth: 10,
+    drawVectors: true,
+    drawVertices: true
 };
 
 /**
@@ -46,12 +48,12 @@ const camera = new THREE.PerspectiveCamera(
     params.width / params.height,
     0.1,
     1000);
-camera.position.set(params.flowFieldX / 2, 50.0, 100);
+camera.position.set(params.flowFieldX / 2, params.flowFieldY, params.flowFieldZ * 1.5);
 
 /**
  * Scene
  */
-const scene = new THREE.Scene();
+export const scene = new THREE.Scene();
 scene.add(camera);
 
 /**
@@ -59,6 +61,7 @@ scene.add(camera);
  * */
 const controls = new OrbitControls(camera, canvas)
 controls.enableDamping = true
+controls.target.set(params.flowFieldX / 2, params.flowFieldY / 2, params.flowFieldZ / 2);
 
 /**
  * Handle window resizing
@@ -107,8 +110,10 @@ const particleSystem = new PS.particleSystem(
     params.flowFieldY, 
     params.flowFieldZ, 
     params.gridwidth);
+    
 const vertices = particleSystem.createFlowField();
 
+if(params.drawVertices) {
 const dotGeometry = new THREE.BufferGeometry();
 dotGeometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
 const dotMaterial = new THREE.PointsMaterial({
@@ -119,6 +124,7 @@ const dotMaterial = new THREE.PointsMaterial({
 const dots = new THREE.Points(dotGeometry, dotMaterial);
 
 scene.add(dots);
+}
 
 const p = new P.Particle(
     params.flowFieldX,
@@ -127,12 +133,48 @@ const p = new P.Particle(
 ).createParticle();
 
 scene.add(p);
+
+const lines = [];
+if (params.drawVectors) {
+
+for (let v = 0; v < particleSystem.velVectors.length; v++){
+    let p1 = new THREE.Vector3(vertices[v * 3 + 1], vertices[v * 3 + 2], vertices[v * 3 + 3]);
+    let p2 = p1.clone().add(particleSystem.velVectors[v])
+    const lineGeometry = new THREE.BufferGeometry().setFromPoints([p1, p2]);
+    const lineMaterial = new THREE.LineBasicMaterial({
+        color: 0x0000ff
+    });
+    const line = new THREE.Line(lineGeometry, lineMaterial);
+    lines.push(line);
+    scene.add(line);
+}
+}
+
+function updateLines() {
+    for (let i = 0; i < lines.length; i++) {
+        const positionsOld = [...lines[i].geometry.attributes.position.array];
+
+        const positions = lines[i].geometry.attributes.position.array;
+        positions[3] = particleSystem.velVectors[i].x + positions[0];
+        positions[4] = particleSystem.velVectors[i].y + positions[1];
+        positions[5] = particleSystem.velVectors[i].z + positions[2];
+        lines[i].geometry.attributes.position.needsUpdate = true; 
+    }
+}
+
+
+
 function animate() {
 
     // Update controls
     controls.update();
 
+    // Update particlesytem vectors
+    particleSystem.update();
 
+    if (params.drawVectors) {
+    updateLines()
+    }
     renderer.render(scene, camera);
     window.requestAnimationFrame(animate);
 }
